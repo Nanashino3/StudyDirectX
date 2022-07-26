@@ -22,4 +22,9 @@
       <Filter>SourceFile</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\BasicShaderHeader.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+  </ItemGroup>
 </Project>
