@@ -224,16 +224,16 @@ int WINMAIN WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	//***********************************************
 	// 頂点バッファーの生成
-	//XMFLOAT3 vertices[] = {
-	//	{-0.5f, -0.7f, 0.0f},
-	//	{ 0.0f,  0.7f, 0.0f},
-	//	{ 0.5f, -0.7f, 0.0f},
-	//};
-	XMFLOAT3 vertices[] = {
-		{-0.4f, -0.7f, 0.0f},	// 左下
-		{-0.4f,  0.7f, 0.0f},	// 左上
-		{ 0.4f, -0.7f, 0.0f},	// 右下
-		{ 0.4f,  0.7f, 0.0f},	// 右上
+	struct Vertex {
+		XMFLOAT3 pos;	// XYZ座標
+		XMFLOAT2 uv;	// UV座標
+	};
+
+	Vertex vertices[] = {
+		{{-0.4f, -0.7f, 0.0f}, {0.0f, 1.0f}},	// 左下
+		{{-0.4f,  0.7f, 0.0f}, {0.0f, 0.0f}},	// 左上
+		{{ 0.4f, -0.7f, 0.0f}, {1.0f, 1.0f}},	// 右下
+		{{ 0.4f,  0.7f, 0.0f}, {1.0f, 0.0f}},	// 右上
 	};
 
 	D3D12_HEAP_PROPERTIES heapProperties = {};
@@ -263,7 +263,7 @@ int WINMAIN WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	//***********************************************
 	// 頂点情報のコピー(マップ)
-	XMFLOAT3* vertMap = nullptr;
+	Vertex* vertMap = nullptr;
 	result = vertBuff->Map(0, nullptr, (void**)&vertMap);
 	std::copy(std::begin(vertices), std::end(vertices), vertMap);
 	vertBuff->Unmap(0, nullptr);
