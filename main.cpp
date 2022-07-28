@@ -464,6 +464,18 @@ int WINMAIN WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	//***********************************************
 
+	struct TexRGBA{
+		unsigned char R, G, B, A;
+	};
+	std::vector<TexRGBA> textureData(256 * 256);
+
+	for(auto& rgba : textureData){
+		rgba.R = rand() % 256;
+		rgba.G = rand() % 256;
+		rgba.B = rand() % 256;
+		rgba.A = 255;			// ƒ¿‚Í1.0‚Æ‚·‚é
+	}
+
 	MSG msg = {};
 	unsigned int frame = 0;
 	while (1) {
