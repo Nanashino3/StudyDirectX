@@ -1,2 +1,2 @@
 # StudyDirectX
-DirectX12学習用
+DirectX12学習用(ブランチ)
