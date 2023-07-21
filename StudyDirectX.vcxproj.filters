@@ -5,26 +5,5 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Shader">
-      <UniqueIdentifier>{8290951f-5767-4da4-acc5-97a15ee88318}</UniqueIdentifier>
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Shader\BasicPixelShader.hlsl">
-      <Filter>Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\BasicVertexShader.hlsl">
-      <Filter>Shader</Filter>
-    </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>SourceFile</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shader\BasicShaderHeader.hlsli">
-      <Filter>Shader</Filter>
-    </None>
   </ItemGroup>
 </Project>
