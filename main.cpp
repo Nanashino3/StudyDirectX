@@ -48,6 +48,15 @@ LRESULT WindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
+void EnableDebugLayer()
+{
+	ID3D12Debug* debugLayer = nullptr;
+	if(SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugLayer)))){
+		debugLayer->EnableDebugLayer();	// デバッグレイヤーを有効化
+		debugLayer->Release();			// 有効化したらインターフェースを解放
+	}
+}
+
 #ifdef _DEBUG
 int main()
 {
@@ -86,6 +95,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 							 w.hInstance,			// 呼び出しアプリケーションハンドル
 							 nullptr);				// 追加パラメータ
 
+#ifdef _DEBUG
+	// デバッグレイヤーをON
+	EnableDebugLayer();
+#endif
+
 	//-----------------------------------------
 	// DirectX12周りの初期化
 
@@ -97,7 +111,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		D3D_FEATURE_LEVEL_11_0,
 	};
 
-	auto result = CreateDXGIFactory1(IID_PPV_ARGS(&gDxgiFactory));
+	auto result = CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(&gDxgiFactory));
 
 	// 利用可能なアダプターを列挙
 	std::vector<IDXGIAdapter*> adapters;
@@ -180,6 +194,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		handle.ptr += gDev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	}
 
+	// フェンスのオブジェクト生成
+	ID3D12Fence* fence = nullptr;
+	UINT64 fenceValue = 0;
+	result = gDev->CreateFence(fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
+
 	// ウィンドウ表示
 	ShowWindow(hwnd, SW_SHOW);
 
@@ -198,6 +217,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		// バックバッファーのインデックスを取得
 		auto bbIdx = gSwapChain->GetCurrentBackBufferIndex();
 
+		D3D12_RESOURCE_BARRIER barrierDesc = {};
+		barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrierDesc.Transition.pResource = backBuffers[bbIdx];
+		barrierDesc.Transition.Subresource = 0;
+		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+		barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		gCmdList->ResourceBarrier(1, &barrierDesc);
+
 		// レンダーターゲットを指定
 		auto rtvH = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
 		rtvH.ptr += bbIdx * gDev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
@@ -207,12 +235,29 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		float clearColor[] = {1.0f, 1.0f, 0.0f, 1.0f};
 		gCmdList->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
 
+		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+		gCmdList->ResourceBarrier(1, &barrierDesc);
+
 		// 命令のクローズ
 		gCmdList->Close();
 
 		// コマンドリストの実行
 		ID3D12CommandList* cmdLists[] = { gCmdList };
 		gCmdQueue->ExecuteCommandLists(1, cmdLists);
+
+		gCmdQueue->Signal(fence, ++fenceValue);
+		if(fence->GetCompletedValue() != fenceValue){
+			// イベントハンドルの取得
+			auto event = CreateEvent(nullptr, false, false, nullptr);
+			fence->SetEventOnCompletion(fenceValue, event);
+
+			// イベントが発生するまで待ち続ける
+			WaitForSingleObject(event, INFINITE);
+
+			// イベントハンドルを閉じる
+			CloseHandle(event);
+		}
 
 		gCmdAllocator->Reset();					 // キューをクリア
 		gCmdList->Reset(gCmdAllocator, nullptr); // 再びコマンドリストを貯める準備
