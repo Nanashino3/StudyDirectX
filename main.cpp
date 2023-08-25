@@ -1,14 +1,14 @@
-#include<Windows.h>
-#include<tchar.h>
+#include <Windows.h>
+#include <tchar.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <DirectXMath.h>
-#include<vector>
-#include<string>
+#include <vector>
+#include <string>
 
 #include <d3dcompiler.h>
 #ifdef _DEBUG
-#include<iostream>
+#include <iostream>
 #endif
 
 #pragma comment(lib, "d3d12.lib")
@@ -205,9 +205,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	ShowWindow(hwnd, SW_SHOW);
 
 	DirectX::XMFLOAT3 vertices[] = {
-		{-1.0f, -1.0f, 0.0f},	// 左下
-		{-1.0f,  1.0f, 0.0f},	// 左上
-		{ 1.0f, -1.0f, 0.0f}	// 右下
+		{-0.4f, -0.7f, 0.0f},	// 左下
+		{-0.4f,  0.7f, 0.0f},	// 左上
+		{ 0.4f, -0.7f, 0.0f},	// 右下
+		{ 0.4f,  0.7f, 0.0f},	// 右上
 	};
 
 	D3D12_HEAP_PROPERTIES heapprop = {};
@@ -246,6 +247,35 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	vbView.BufferLocation = vertBuff->GetGPUVirtualAddress(); // バッファーの仮想アドレス
 	vbView.SizeInBytes = sizeof(vertices);					  // 全バイト数
 	vbView.StrideInBytes = sizeof(vertices[0]);				  // 1頂点あたりのバイト数
+
+	unsigned short indices[] = {
+		0, 1, 2,
+		2, 1, 3
+	};
+
+	ID3D12Resource* idxBuff = nullptr;
+	// 設定は、バッファーのサイズ以外、頂点バッファーの設定を使い回してよい
+	resDesc.Width = sizeof(indices);
+
+	result = gDev->CreateCommittedResource(
+		&heapprop,
+		D3D12_HEAP_FLAG_NONE,
+		&resDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&idxBuff));
+
+	// 作ったバッファーにインデックスデータをコピー
+	unsigned short* mapprdIdx = nullptr;
+	idxBuff->Map(0, nullptr, (void**)&mapprdIdx);
+	std::copy(std::begin(indices), std::end(indices), mapprdIdx);
+	idxBuff->Unmap(0, nullptr);
+
+	// インデックスバッファービューを作成
+	D3D12_INDEX_BUFFER_VIEW ibView = {};
+	ibView.BufferLocation = idxBuff->GetGPUVirtualAddress();
+	ibView.Format = DXGI_FORMAT_R16_UINT;
+	ibView.SizeInBytes = sizeof(indices);
 
 	ID3DBlob* vsBlob = nullptr;
 	ID3DBlob* psBlob = nullptr;
@@ -407,8 +437,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		gCmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		gCmdList->IASetVertexBuffers(0, 1, &vbView);
+		gCmdList->IASetIndexBuffer(&ibView);
 
-		gCmdList->DrawInstanced(3, 1, 0, 0);
+		gCmdList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 
 		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
